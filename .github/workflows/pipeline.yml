@@ -33,8 +33,8 @@ jobs:
       - name: Lint JavaScript
         run: |
           cd frontend
-          # Use a flat config for ESLint v9
-          if [ ! -f eslint.config.js ]; then
+          # Use a flat config for ESLint v9 (mjs for ESM support)
+          if [ ! -f eslint.config.mjs ]; then
             echo 'import js from "@eslint/js";
             import globals from "globals";
             export default [
@@ -49,7 +49,7 @@ jobs:
                   }
                 }
               }
-            ];' > eslint.config.js
+            ];' > eslint.config.mjs
           fi
           # Install globals package needed for the config
           npm install --save-dev globals @eslint/js
