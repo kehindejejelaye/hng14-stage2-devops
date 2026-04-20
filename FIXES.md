@@ -13,3 +13,9 @@
 | `api/main.py` | N/A | Missing `uvicorn` startup entry point | Added `if __name__ == "__main__":` block to run with uvicorn |
 | `api/main.py` | 13 | Redis `lpush` followed by `hset` can lead to race conditions where worker pops before status is set | Reordered: `hset` before `lpush` |
 | `frontend/app.js` | 33 | Redundant and brittle log statement using full URL | Refactor to log host and port separately for clarity and accuracy |
+| `api/Dockerfile` | N/A | Running as root and missing healthcheck | Implemented multi-stage build, non-root user `appuser`, and added `HEALTHCHECK` |
+| `worker/Dockerfile` | N/A | Running as root, missing healthcheck, and missing `procps` | Implemented multi-stage build, non-root user `appuser`, installed `procps`, and added `HEALTHCHECK` |
+| `frontend/Dockerfile` | N/A | Running as root and missing healthcheck | Implemented multi-stage build, non-root user `appuser`, and added `HEALTHCHECK` |
+| `docker-compose.yml` | N/A | Missing resource limits, health-dependent startup, and dynamic configuration | Added CPU/Memory limits, `condition: service_healthy` for `depends_on`, and configured via environment variables |
+| `N/A` | N/A | Missing automated testing and CI/CD pipeline | Implemented full GitHub Actions pipeline with Lint, Test, Build, Security Scan, Integration Test, and Deploy stages `.github/workflows/pipeline.yml` |
+| `N/A` | N/A | Missing scripted rolling update deployment | Created `deploy.sh` script to perform zero-downtime rolling updates with health validation |
