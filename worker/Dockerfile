@@ -13,19 +13,20 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Create a non-root user and install procps for healthcheck
+# Install procps for healthcheck, then create a non-root user with home
 RUN apt-get update && apt-get install -y --no-install-recommends procps && \
     rm -rf /var/lib/apt/lists/* && \
-    groupadd -r appuser && useradd -r -g appuser appuser
+    groupadd -r appuser && useradd -m -r -g appuser appuser
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /home/appuser/.local
-COPY worker.py .
+# Copy installed packages from builder with correct ownership
+COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 
-# Update PATH
+COPY --chown=appuser:appuser worker.py .
+
+# Update PATH and set PYTHONUSERBASE so python finds the packages
 ENV PATH=/home/appuser/.local/bin:$PATH
+ENV PYTHONUSERBASE=/home/appuser/.local
 
-RUN chown -R appuser:appuser /app
 USER appuser
 
 # Healthcheck for worker: check if process is running

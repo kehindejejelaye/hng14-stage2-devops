@@ -13,17 +13,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Create a non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# Create a non-root user with home directory
+RUN groupadd -r appuser && useradd -m -r -g appuser appuser
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /home/appuser/.local
-COPY main.py .
+# Copy installed packages from builder with correct ownership
+COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 
-# Update PATH
+COPY --chown=appuser:appuser main.py .
+
+# Update PATH and set PYTHONUSERBASE so python finds the packages
 ENV PATH=/home/appuser/.local/bin:$PATH
+ENV PYTHONUSERBASE=/home/appuser/.local
 
-RUN chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000
