@@ -3,8 +3,11 @@ const axios = require('axios');
 const path = require('path');
 const app = express();
 
-const API_URL = process.env.API_URL || "http://localhost:8000";
+// Configuration from environment variables
 const PORT = process.env.PORT || 3000;
+const API_HOST = process.env.API_HOST || "localhost";
+const API_PORT = process.env.API_PORT || 8000;
+const API_URL = `http://${API_HOST}:${API_PORT}`;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'views')));
@@ -30,5 +33,6 @@ app.get('/status/:id', async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Frontend running on port ${PORT}, communicating with API at ${API_URL}`);
+  console.log(`Frontend running on port ${PORT}`);
+  console.log(`Communicating with API at ${API_HOST}:${API_PORT}`);
 });
