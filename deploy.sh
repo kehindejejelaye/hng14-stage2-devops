@@ -10,16 +10,23 @@ if [ -z "$SERVICE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     exit 1
 fi
 
-OLD_CONTAINER=$(docker ps -f "name=${SERVICE_NAME}" --format "{{.ID}}" | head -n 1)
+# Use exact name matching to find any existing container (running or stopped)
+OLD_CONTAINER=$(docker ps -a -q -f "name=^/${SERVICE_NAME}$")
 NEW_CONTAINER_NAME="${SERVICE_NAME}_new_$(date +%s)"
 
 echo "Starting new container for ${SERVICE_NAME} with tag ${IMAGE_TAG}..."
 
 # Construct environment variables if any are needed for healthcheck
-# This assumes the network 'internal' exists from docker-compose
+# If .env exists in the current directory, use it.
+ENV_FILE_FLAG=""
+if [ -f .env ]; then
+    ENV_FILE_FLAG="--env-file .env"
+fi
+
 docker run -d \
   --name "${NEW_CONTAINER_NAME}" \
   --network hng14-stage2-devops_internal \
+  ${ENV_FILE_FLAG} \
   "${IMAGE_TAG}"
 
 # Wait for health check (max 60 seconds)
