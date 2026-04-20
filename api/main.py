@@ -2,16 +2,21 @@ from fastapi import FastAPI
 import redis
 import uuid
 import os
+import uvicorn
 
 app = FastAPI()
 
-r = redis.Redis(host="localhost", port=6379)
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+
+r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 
 @app.post("/jobs")
 def create_job():
     job_id = str(uuid.uuid4())
-    r.lpush("job", job_id)
+    # Set status FIRST to avoid race condition where worker pops before it's set
     r.hset(f"job:{job_id}", "status", "queued")
+    r.lpush("job", job_id)
     return {"job_id": job_id}
 
 @app.get("/jobs/{job_id}")
@@ -20,3 +25,6 @@ def get_job(job_id: str):
     if not status:
         return {"error": "not found"}
     return {"job_id": job_id, "status": status.decode()}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
