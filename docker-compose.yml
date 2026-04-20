@@ -21,15 +21,15 @@ services:
       context: ./api
       dockerfile: Dockerfile
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - internal
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     deploy:
       resources:
         limits:
@@ -41,8 +41,8 @@ services:
       context: ./worker
       dockerfile: Dockerfile
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
       redis:
         condition: service_healthy
@@ -59,16 +59,16 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      - API_HOST=api
-      - API_PORT=8000
-      - PORT=3000
+      - API_HOST=${API_HOST:-api}
+      - API_PORT=${API_PORT:-8000}
+      - PORT=${PORT:-3000}
     depends_on:
       api:
         condition: service_healthy
     networks:
       - internal
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     deploy:
       resources:
         limits:
