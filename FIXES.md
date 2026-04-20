@@ -19,3 +19,11 @@
 | `docker-compose.yml` | N/A | Missing resource limits, health-dependent startup, and dynamic configuration | Added CPU/Memory limits, `condition: service_healthy` for `depends_on`, and configured via environment variables |
 | `N/A` | N/A | Missing automated testing and CI/CD pipeline | Implemented full GitHub Actions pipeline with Lint, Test, Build, Security Scan, Integration Test, and Deploy stages `.github/workflows/pipeline.yml` |
 | `N/A` | N/A | Missing scripted rolling update deployment | Created `deploy.sh` script to perform zero-downtime rolling updates with health validation |
+| `api/test_main.py` | 14 | `ModuleNotFoundError: No module named 'api'` during test execution | Explicitly add parent directory to `sys.path` to ensure module resolution |
+| `docker-compose.yml` | N/A | Hardcoded service configurations and missing environment variable overrides | Replaced hardcoded values with `${VAR:-default}` syntax for all service environments and ports |
+| `api/Dockerfile` | 17,21 | Missing home directory for `appuser` and incorrect package ownership | Used `useradd -m`, `COPY --chown`, and set `PYTHONUSERBASE` for correct non-root execution |
+| `worker/Dockerfile` | 14,18 | Missing home directory for `appuser` and incorrect package ownership | Used `useradd -m`, `COPY --chown`, and set `PYTHONUSERBASE` for correct non-root execution |
+| `deploy.sh` | 13 | Renaming fails if a stopped container with the same name exists | Changed `docker ps` to `docker ps -a` with exact name filtering to handle stopped containers |
+| `deploy.sh` | 24 | New containers start without environment variables, causing potential failures | Added logic to automatically use `.env` file via `--env-file` if present |
+| `N/A` | N/A | Missing `.dockerignore` files | Created `.dockerignore` for each service to exclude `.env`, `.git`, and `__pycache__` |
+| `pytest.ini` | N/A | Missing pytest configuration for discovery | Created `pytest.ini` at root to standardize test discovery and pythonpath |
