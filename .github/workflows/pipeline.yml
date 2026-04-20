@@ -230,6 +230,8 @@ jobs:
           chmod +x deploy.sh
           # Create the network that deploy.sh expects
           docker network create hng14-stage2-devops_internal || true
+          # Create .env from .env.example
+          cp .env.example .env
 
       - name: Rolling Update API
         run: |
