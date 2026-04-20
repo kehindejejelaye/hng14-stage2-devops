@@ -80,6 +80,7 @@ jobs:
 
       - name: Run Tests with Coverage
         run: |
+          export PYTHONPATH=$PYTHONPATH:.
           pytest api/test_main.py --cov=api --cov-report=xml --cov-report=term-missing
 
       - name: Upload Coverage Report
