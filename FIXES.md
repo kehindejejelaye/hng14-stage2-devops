@@ -27,3 +27,4 @@
 | `deploy.sh` | 24 | New containers start without environment variables, causing potential failures | Added logic to automatically use `.env` file via `--env-file` if present |
 | `N/A` | N/A | Missing `.dockerignore` files | Created `.dockerignore` for each service to exclude `.env`, `.git`, and `__pycache__` |
 | `pytest.ini` | N/A | Missing pytest configuration for discovery | Created `pytest.ini` at root to standardize test discovery and pythonpath |
+| `Dockerfiles` | N/A | CRITICAL vulnerabilities found by Trivy in base images | Switched to `bookworm` variants and added `apt-get upgrade` to both build and production stages |

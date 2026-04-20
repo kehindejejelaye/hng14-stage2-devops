@@ -1,17 +1,22 @@
 # Stage 1: Build
-FROM python:3.11-slim as builder
+FROM python:3.11-slim-bookworm as builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends gcc python3-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends gcc python3-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Stage 2: Production
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
+
+# Upgrade OS packages to resolve vulnerabilities
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user with home directory
 RUN groupadd -r appuser && useradd -m -r -g appuser appuser
