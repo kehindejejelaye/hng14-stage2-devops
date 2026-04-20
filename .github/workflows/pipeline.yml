@@ -33,12 +33,29 @@ jobs:
       - name: Lint JavaScript
         run: |
           cd frontend
-          # Use a basic eslint config if none exists to avoid failure
-          if [ ! -f .eslintrc.json ]; then
-            echo '{"env": {"node": true, "es6": true}, "extends": "eslint:recommended", "parserOptions": {"ecmaVersion": "latest"}}' > .eslintrc.json
+          # Use a flat config for ESLint v9
+          if [ ! -f eslint.config.js ]; then
+            echo 'import js from "@eslint/js";
+            import globals from "globals";
+            export default [
+              js.configs.recommended,
+              {
+                languageOptions: {
+                  ecmaVersion: "latest",
+                  sourceType: "module",
+                  globals: {
+                    ...globals.node,
+                    ...globals.es2021
+                  }
+                }
+              }
+            ];' > eslint.config.js
           fi
-          npx eslint . --ext .js
+          # Install globals package needed for the config
+          npm install --save-dev globals @eslint/js
+          npx eslint .
           cd ..
+
 
       - name: Lint Dockerfiles
         uses: hadolint/hadolint-action@v3.1.0
