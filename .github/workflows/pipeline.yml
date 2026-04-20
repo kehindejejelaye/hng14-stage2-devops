@@ -1,0 +1,238 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          pip install flake8
+          cd frontend && npm install && cd ..
+
+      - name: Lint Python
+        run: flake8 api/ worker/ --ignore=E501
+
+      - name: Lint JavaScript
+        run: |
+          cd frontend
+          # Use a basic eslint config if none exists to avoid failure
+          if [ ! -f .eslintrc.json ]; then
+            echo '{"env": {"node": true, "es6": true}, "extends": "eslint:recommended", "parserOptions": {"ecmaVersion": "latest"}}' > .eslintrc.json
+          fi
+          npx eslint . --ext .js
+          cd ..
+
+      - name: Lint Dockerfiles
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: "api/Dockerfile"
+      
+      - name: Lint Worker Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: "worker/Dockerfile"
+
+      - name: Lint Frontend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: "frontend/Dockerfile"
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r api/requirements.txt pytest pytest-cov mock redis httpx
+
+      - name: Run Tests with Coverage
+        run: |
+          pytest api/test_main.py --cov=api --cov-report=xml --cov-report=term-missing
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+
+      - name: Build and Push
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          for service in api worker frontend; do
+            docker build -t localhost:5000/hng-stage2-$service:latest \
+                         -t localhost:5000/hng-stage2-$service:$GITHUB_SHA \
+                         ./$service
+            docker push localhost:5000/hng-stage2-$service --all-tags
+          done
+
+  security:
+    needs: build
+    runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+    steps:
+      - uses: actions/checkout@v4
+
+      # We need to pull the images from the local registry service if they are not present
+      # But since it's a new job, we might need to rebuild or use a shared registry.
+      # For simplicity in this task, we'll rebuild or just use the local images if we can.
+      # Actually, the local registry service container is per job. 
+      # Let's rebuild them quickly or use a single job for build/security.
+      # To follow "strict order" and separate jobs, we'll use a single job or rebuild.
+      # Re-building is fast with cache.
+      
+      - name: Build for Scan
+        run: |
+          docker build -t hng-stage2-api ./api
+          docker build -t hng-stage2-worker ./worker
+          docker build -t hng-stage2-frontend ./frontend
+
+      - name: Run Trivy on API
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'hng-stage2-api'
+          format: 'sarif'
+          output: 'trivy-results-api.sarif'
+          severity: 'CRITICAL'
+          exit-code: '1'
+
+      - name: Run Trivy on Worker
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'hng-stage2-worker'
+          format: 'sarif'
+          output: 'trivy-results-worker.sarif'
+          severity: 'CRITICAL'
+          exit-code: '1'
+
+      - name: Run Trivy on Frontend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'hng-stage2-frontend'
+          format: 'sarif'
+          output: 'trivy-results-frontend.sarif'
+          severity: 'CRITICAL'
+          exit-code: '1'
+
+      - name: Upload Trivy Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results
+          path: trivy-results-*.sarif
+
+  integration:
+    needs: security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        run: docker compose up -d --build
+
+      - name: Run Integration Tests
+        run: |
+          echo "Waiting for stack to be healthy..."
+          # Poll for health
+          timeout 60s bash -c 'until [ "$(docker inspect --format="{{.State.Health.Status}}" $(docker ps -qf name=frontend))" == "healthy" ]; do sleep 5; done'
+          
+          # Submit job via frontend
+          # Since frontend is port mapped to 3000
+          JOB_ID=$(curl -s -X POST http://localhost:3000/submit | jq -r '.job_id')
+          echo "Submitted Job ID: $JOB_ID"
+          
+          if [ "$JOB_ID" == "null" ] || [ -z "$JOB_ID" ]; then
+            echo "Failed to submit job"
+            exit 1
+          fi
+
+          MAX_RETRIES=20
+          RETRY_COUNT=0
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            STATUS=$(curl -s http://localhost:3000/status/$JOB_ID | jq -r '.status')
+            echo "Current Status: $STATUS"
+            if [ "$STATUS" == "completed" ]; then
+              echo "Integration test passed!"
+              exit 0
+            fi
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            sleep 2
+          done
+          echo "Integration test failed: Job never completed."
+          exit 1
+
+      - name: Tear down
+        if: always()
+        run: docker compose down
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup for Deployment
+        run: |
+          chmod +x deploy.sh
+          # Create the network that deploy.sh expects
+          docker network create hng14-stage2-devops_internal || true
+
+      - name: Rolling Update API
+        run: |
+          docker build -t hng-stage2-api:latest ./api
+          ./deploy.sh api hng-stage2-api:latest
+
+      - name: Rolling Update Worker
+        run: |
+          docker build -t hng-stage2-worker:latest ./worker
+          ./deploy.sh worker hng-stage2-worker:latest
+
+      - name: Rolling Update Frontend
+        run: |
+          docker build -t hng-stage2-frontend:latest ./frontend
+          ./deploy.sh frontend hng-stage2-frontend:latest
