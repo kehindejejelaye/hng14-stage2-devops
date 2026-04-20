@@ -2,6 +2,10 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
 import os
+import sys
+
+# Ensure the parent directory is in sys.path so 'api' is importable
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Set environment variables for testing
 os.environ["REDIS_HOST"] = "localhost"
