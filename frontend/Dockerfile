@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:18-alpine3.20 as builder
+FROM node:18-alpine3.19 AS builder
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ COPY package.json .
 RUN npm install --omit=dev
 
 # Stage 2: Production
-FROM node:18-alpine3.20
+FROM node:18-alpine3.19
 
 WORKDIR /app
 
@@ -19,7 +19,8 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY app.js .
 COPY views ./views
 
-RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appgroup /app
+
 USER appuser
 
 EXPOSE 3000

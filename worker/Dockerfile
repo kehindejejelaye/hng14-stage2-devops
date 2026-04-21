@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM python:3.12-alpine3.20 as builder
+FROM python:3.12-alpine3.19 AS builder
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Stage 2: Production
-FROM python:3.12-alpine3.20
+FROM python:3.12-alpine3.19
 
 WORKDIR /app
 
@@ -19,9 +19,10 @@ RUN apk add --no-cache procps && \
     addgroup -S appgroup && adduser -S appuser -G appgroup -h /home/appuser
 
 # Copy installed packages from builder with correct ownership
-COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
+COPY --from=builder --chown=appuser:appgroup /root/.local /home/appuser/.local
 
-COPY --chown=appuser:appuser worker.py .
+COPY --chown=appuser:appgroup worker.py .
+
 
 # Update PATH and set PYTHONUSERBASE so python finds the packages
 ENV PATH=/home/appuser/.local/bin:$PATH
