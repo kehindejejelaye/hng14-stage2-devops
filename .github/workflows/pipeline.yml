@@ -145,7 +145,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'hng-stage2-api'
-          format: 'sarif'
+          format: 'table'
           output: 'trivy-results-api.sarif'
           severity: 'CRITICAL'
           exit-code: '1'
@@ -154,7 +154,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'hng-stage2-worker'
-          format: 'sarif'
+          format: 'table'
           output: 'trivy-results-worker.sarif'
           severity: 'CRITICAL'
           exit-code: '1'
@@ -163,7 +163,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'hng-stage2-frontend'
-          format: 'sarif'
+          format: 'table'
           output: 'trivy-results-frontend.sarif'
           severity: 'CRITICAL'
           exit-code: '1'
