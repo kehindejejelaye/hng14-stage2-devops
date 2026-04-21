@@ -28,3 +28,4 @@
 | `N/A` | N/A | Missing `.dockerignore` files | Created `.dockerignore` for each service to exclude `.env`, `.git`, and `__pycache__` |
 | `pytest.ini` | N/A | Missing pytest configuration for discovery | Created `pytest.ini` at root to standardize test discovery and pythonpath |
 | `Dockerfiles` | N/A | CRITICAL vulnerabilities found by Trivy in base images | Switched to `bookworm` variants and added `apt-get upgrade` to both build and production stages |
+| `requirements.txt` | N/A | CRITICAL vulnerabilities in unpinned python packages | Pinned `fastapi>=0.136.0`, `uvicorn>=0.44.0`, and `redis>=5.0.0` to resolve RCE and SSRF threats |
