@@ -137,9 +137,9 @@ jobs:
       
       - name: Build for Scan
         run: |
-          docker build -t hng-stage2-api ./api
-          docker build -t hng-stage2-worker ./worker
-          docker build -t hng-stage2-frontend ./frontend
+          docker build --pull --no-cache -t hng-stage2-api ./api
+          docker build --pull --no-cache -t hng-stage2-worker ./worker
+          docker build --pull --no-cache -t hng-stage2-frontend ./frontend
 
       - name: Run Trivy on API
         uses: aquasecurity/trivy-action@master

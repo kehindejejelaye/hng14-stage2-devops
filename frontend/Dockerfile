@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:18-alpine3.20 AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ COPY package.json .
 RUN npm install --omit=dev
 
 # Stage 2: Production
-FROM node:18-alpine3.20
+FROM node:20-alpine
 
 WORKDIR /app
 
