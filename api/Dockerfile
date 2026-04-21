@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM python:3.12-alpine3.19 AS builder
+FROM python:3.12-alpine3.20 AS builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Stage 2: Production
-FROM python:3.12-alpine3.19
+FROM python:3.12-alpine3.20
 
 WORKDIR /app
 
