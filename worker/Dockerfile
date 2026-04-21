@@ -1,25 +1,22 @@
 # Stage 1: Build
-FROM python:3.11-slim-bookworm as builder
+FROM python:3.12-alpine3.19 as builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends gcc python3-dev && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache gcc musl-dev python3-dev
 
 COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Stage 2: Production
-FROM python:3.11-slim-bookworm
+FROM python:3.12-alpine3.19
 
 WORKDIR /app
 
-# Upgrade OS packages and install procps for healthcheck
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends procps && \
-    rm -rf /var/lib/apt/lists/* && \
-    groupadd -r appuser && useradd -m -r -g appuser appuser
+# Install procps for healthcheck if needed, but ps is in busybox
+# and create a non-root user with home
+RUN apk add --no-cache procps && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup -h /home/appuser
 
 # Copy installed packages from builder with correct ownership
 COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local

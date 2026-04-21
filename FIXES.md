@@ -27,6 +27,6 @@
 | `deploy.sh` | 24 | New containers start without environment variables, causing potential failures | Added logic to automatically use `.env` file via `--env-file` if present |
 | `N/A` | N/A | Missing `.dockerignore` files | Created `.dockerignore` for each service to exclude `.env`, `.git`, and `__pycache__` |
 | `pytest.ini` | N/A | Missing pytest configuration for discovery | Created `pytest.ini` at root to standardize test discovery and pythonpath |
-| `Dockerfiles` | N/A | CRITICAL vulnerabilities found by Trivy in base images | Switched to `bookworm` variants and added `apt-get upgrade` to both build and production stages |
-| `requirements.txt` | N/A | CRITICAL vulnerabilities in unpinned python packages | Pinned `fastapi>=0.136.0`, `uvicorn>=0.44.0`, and `redis>=5.0.0` to resolve RCE and SSRF threats |
+| `Dockerfiles` | N/A | CRITICAL vulnerabilities found by Trivy in base images | Switched to `alpine3.19` variants for all services and implemented multi-stage builds with non-root users |
+| `requirements.txt` | N/A | CRITICAL vulnerabilities in unpinned python packages | Pinned `fastapi==0.115.0`, `uvicorn==0.32.0`, and `redis==5.1.1` to resolve RCE and SSRF threats |
 | `api/.env` | 1 | Hardcoded `REDIS_PASSWORD` secret present in sub-directory | Removed `api/.env` and implemented dynamic `REDIS_PASSWORD` support via environment variables |

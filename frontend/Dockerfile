@@ -1,23 +1,18 @@
 # Stage 1: Build
-FROM node:18-bookworm-slim as builder
+FROM node:18-alpine3.19 as builder
 
 WORKDIR /app
-
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 COPY package.json .
 RUN npm install --omit=dev
 
 # Stage 2: Production
-FROM node:18-bookworm-slim
+FROM node:18-alpine3.19
 
 WORKDIR /app
 
-# Upgrade OS packages
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
-
 # Create a non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copy installed packages and code from builder
 COPY --from=builder /app/node_modules ./node_modules

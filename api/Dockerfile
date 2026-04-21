@@ -1,25 +1,21 @@
 # Stage 1: Build
-FROM python:3.11-slim-bookworm as builder
+FROM python:3.12-alpine3.19 as builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends gcc python3-dev && \
-    rm -rf /var/lib/apt/lists/*
+# Install build dependencies for some python packages if needed
+RUN apk add --no-cache gcc musl-dev python3-dev
 
 COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Stage 2: Production
-FROM python:3.11-slim-bookworm
+FROM python:3.12-alpine3.19
 
 WORKDIR /app
 
-# Upgrade OS packages to resolve vulnerabilities
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
-
 # Create a non-root user with home directory
-RUN groupadd -r appuser && useradd -m -r -g appuser appuser
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup -h /home/appuser
 
 # Copy installed packages from builder with correct ownership
 COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
@@ -34,7 +30,7 @@ USER appuser
 
 EXPOSE 8000
 
-# Using python -c for healthcheck because curl is not installed in slim
+# Using python -c for healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD python3 -c 'import urllib.request; urllib.request.urlopen("http://localhost:8000/docs")' || exit 1
 
